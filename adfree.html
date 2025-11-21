@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ad Studio Pro</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script src='//libtl.com/sdk.js' data-zone='10216608' data-sdk='show_10216608'></script>
+
+    <style>
+        :root { --primary: #00ffa3; --secondary: #7000ff; --bg: #0f0f13; --card: #1a1a20; --text: #fff; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; min-height: 100vh; user-select: none; box-sizing: border-box; }
+
+        /* Header & Balance */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .user-badge { font-size: 12px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; }
+        
+        .balance-card {
+            background: linear-gradient(160deg, #1e1e24, #2a2a35);
+            padding: 30px 20px; border-radius: 25px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 30px;
+        }
+        .balance-amount { font-size: 48px; font-weight: 700; color: var(--primary); text-shadow: 0 0 15px rgba(0,255,163,0.2); }
+        .bdt-tag { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 14px; color: #ccc; }
+
+        /* Main Action Button */
+        .earn-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .earn-btn {
+            width: 180px; height: 180px; border-radius: 50%;
+            background: radial-gradient(circle, #ff8c00, #ff0080);
+            border: 5px solid rgba(255,255,255,0.1);
+            color: white; font-size: 20px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 0, 128, 0.4);
+            transition: transform 0.1s; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .earn-btn:active { transform: scale(0.95); }
+        .earn-btn i { font-size: 40px; margin-bottom: 10px; }
+
+        /* Bottom Action Grid (Box System) */
+        .bottom-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            margin-top: 30px; width: 100%;
+        }
+        .action-box {
+            background: var(--card); padding: 20px; border-radius: 20px;
+            text-align: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.3s;
+        }
+        .action-box:active { background: #252530; }
+        .action-box i { font-size: 24px; margin-bottom: 10px; color: var(--secondary); }
+        .action-box h4 { margin: 0; font-size: 14px; font-weight: 600; }
+        .action-box p { margin: 5px 0 0; font-size: 10px; color: #888; }
+
+        /* Modals (Popups) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 100; display: none;
+            align-items: flex-end; /* Bottom Sheet Effect */
+        }
+        .modal-content {
+            background: #1a1a20; width: 100%; border-radius: 25px 25px 0 0;
+            padding: 30px 20px; box-sizing: border-box; position: relative;
+            animation: slideUp 0.3s; border-top: 1px solid var(--primary);
+        }
+        @keyframes slideUp { from {transform: translateY(100%);} to {transform: translateY(0);} }
+        
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #888; cursor: pointer; }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* Inputs */
+        .form-control { width: 100%; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; color: white; margin-bottom: 10px; box-sizing: border-box; }
+        .btn-primary { width: 100%; background: var(--primary); color: #000; font-weight: bold; padding: 15px; border-radius: 12px; border: none; cursor: pointer; font-size: 16px; }
+        .btn-copy { background: var(--secondary); color: white; width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer; margin-top: 10px; }
+        
+        /* Progress Bar */
+        .progress-bg { background: #333; height: 8px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: 0.5s; }
+        
+        /* Loading */
+        #loading { position: fixed; inset: 0; background: #0f0f13; display: flex; justify-content: center; align-items: center; z-index: 999; }
+    </style>
+</head>
+<body>
+
+    <div id="loading"><i class="fa-solid fa-spinner fa-spin" style="font-size: 30px; color: var(--primary);"></i></div>
+
+    <div class="header">
+        <span style="font-weight:700;">AdStudio</span>
+        <div class="user-badge"><i class="fa-solid fa-user"></i> <span id="username">User</span></div>
+    </div>
+
+    <div class="balance-card">
+        <div style="color:#aaa; font-size:14px;">Total Earnings</div>
+        <div class="balance-amount">$<span id="balance">0.00</span></div>
+        <span class="bdt-tag"> <span id="bdt-balance">0</span> BDT</span>
+    </div>
+
+    <div class="earn-container">
+        <button class="earn-btn" id="adBtn">
+            <i class="fa-solid fa-play"></i>
+            WATCH ADS
+            <span style="font-size:12px; font-weight:400; margin-top:5px;">+$0.05</span>
+        </button>
+    </div>
+
+    <div class="bottom-grid">
+        <div class="action-box" onclick="openModal('referModal')">
+            <i class="fa-solid fa-users" style="color: #ff9f43;"></i>
+            <h4>Refer & Earn</h4>
+            <p>Get $0.50/Friend</p>
+        </div>
+        <div class="action-box" onclick="openModal('withdrawModal')">
+            <i class="fa-solid fa-wallet" style="color: #2ecc71;"></i>
+            <h4>Withdraw</h4>
+            <p>Min $5.00</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="referModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('referModal')">&times;</span>
+            <div class="modal-title"><i class="fa-solid fa-users"></i> Referral Program</div>
+            
+            <div style="background:#222; padding:15px; border-radius:15px; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px;">
+                    <span>Progress</span>
+                    <span style="color:var(--primary)"><span id="ref-count">0</span>/10 Friends</span>
+                </div>
+                <div class="progress-bg"><div class="progress-fill" id="progress-bar"></div></div>
+                <p style="font-size:12px; color:#888;">You need 10 referrals to withdraw money.</p>
+            </div>
+
+            <p style="font-size:13px; color:#ccc; margin-bottom:5px;">Your Invite Link:</p>
+            <input type="text" class="form-control" id="ref-link" readonly style="font-size:12px; color:#aaa;">
+            <button class="btn-copy" onclick="copyLink()">Copy Link</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="withdrawModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('withdrawModal')">&times;</span>
+            <div class="modal-title"><i class="fa-solid fa-money-bill-wave"></i> Withdraw Money</div>
+
+            <div id="withdraw-locked" style="text-align:center; padding:20px;">
+                <i class="fa-solid fa-lock" style="font-size:40px; color:#444; margin-bottom:15px;"></i>
+                <p style="color:#ff4757;">Locked!</p>
+                <p style="font-size:13px; color:#aaa;">Requires <span style="color:#fff">$5.00</span> and <span style="color:#fff">10 Referrals</span>.</p>
+            </div>
+
+            <div id="withdraw-form" style="display:none;">
+                <select id="method" class="form-control">
+                    <option value="bkash">bKash</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="rocket">Rocket</option>
+                    <option value="binance">Binance</option>
+                </select>
+                <input type="number" class="form-control" placeholder="Wallet Number / ID" id="account-number">
+                <div class="form-control" style="display:flex; justify-content:space-between; opacity:0.7;">
+                    <span>Amount:</span>
+                    <span>$5.00 (450)</span>
+                </div>
+                <button class="btn-primary" onclick="requestWithdraw()">Confirm Withdrawal</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd0iNzWU9Xn2nADgP33d-kruVcsYgLVTI",
+            authDomain: "fir-2d351.firebaseapp.com",
+            databaseURL: "https://fir-2d351-default-rtdb.firebaseio.com",
+            projectId: "fir-2d351",
+            storageBucket: "fir-2d351.firebasestorage.app",
+            messagingSenderId: "520858583672",
+            appId: "1:520858583672:web:25aea3791607e83d93a38d",
+            measurementId: "G-K6EJDWYG07"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // User Setup
+        let userId = tg.initDataUnsafe?.user?.id || localStorage.getItem('test_user_id') || Math.floor(Math.random() * 1000000);
+        if (!tg.initDataUnsafe?.user?.id) localStorage.setItem('test_user_id', userId);
+        let userName = tg.initDataUnsafe?.user?.first_name || "Guest";
+        let startParam = tg.initDataUnsafe?.start_param;
+
+        // DOM Elements
+        const els = {
+            balance: document.getElementById('balance'),
+            bdt: document.getElementById('bdt-balance'),
+            refCount: document.getElementById('ref-count'),
+            progress: document.getElementById('progress-bar'),
+            refLink: document.getElementById('ref-link'),
+            loading: document.getElementById('loading')
+        };
+
+        document.getElementById('username').innerText = userName;
+
+        // ------------------- FIREBASE LOGIC -------------------
+        const userRef = ref(db, 'users/' + userId);
+
+        onValue(userRef, (snapshot) => {
+            els.loading.style.display = "none";
+            const data = snapshot.val();
+            if (!data) {
+                createNewUser();
+            } else {
+                updateUI(data);
+            }
+        });
+
+        function createNewUser() {
+            let referredBy = null;
+            if (startParam && startParam != userId) {
+                referredBy = startParam;
+                // Bonus to referrer
+                update(ref(db, 'users/' + startParam), {
+                    balance: increment(0.50),
+                    referrals: increment(1)
+                });
+            }
+            set(userRef, {
+                username: userName,
+                balance: 0.00,
+                referrals: 0,
+                referredBy: referredBy
+            });
+        }
+
+        function updateUI(data) {
+            const bal = data.balance || 0;
+            const refs = data.referrals || 0;
+
+            els.balance.innerText = bal.toFixed(2);
+            els.bdt.innerText = (bal * 90).toFixed(0);
+            els.refCount.innerText = refs;
+            
+            // Progress Bar
+            let pct = (refs / 10) * 100;
+            els.progress.style.width = `${Math.min(pct, 100)}%`;
+
+            // Withdraw Lock Logic
+            const isUnlocked = bal >= 5 && refs >= 10;
+            document.getElementById('withdraw-locked').style.display = isUnlocked ? 'none' : 'block';
+            document.getElementById('withdraw-form').style.display = isUnlocked ? 'block' : 'none';
+
+            // BOT USERNAME (Change this!)
+            const botUsername = "YourBotName"; 
+            els.refLink.value = `https://t.me/${botUsername}?start=${userId}`;
+        }
+
+        // ------------------- ACTIONS -------------------
+        
+        // Watch Ad
+        document.getElementById('adBtn').addEventListener('click', () => {
+             if (typeof show_10216608 === 'function') {
+                show_10216608().then(() => {
+                    update(userRef, { balance: increment(0.05) });
+                    alert("Reward Added: $0.05");
+                }).catch(() => {
+                    update(userRef, { balance: increment(0.05) }); // Demo
+                    alert("Ad Simulated: $0.05 Added");
+                });
+            } else {
+                update(userRef, { balance: increment(0.05) }); // Fallback
+                alert("Reward Added: $0.05");
+            }
+        });
+
+        // Withdraw Request
+        window.requestWithdraw = function() {
+            const acc = document.getElementById('account-number').value;
+            if(!acc) return alert("Enter account number");
+            
+            update(userRef, { balance: increment(-5) }).then(() => {
+                alert("Withdrawal Successful! Money sent.");
+                closeModal('withdrawModal');
+            });
+        }
+
+        // Copy Link
+        window.copyLink = function() {
+            els.refLink.select();
+            document.execCommand("copy");
+            alert("Link Copied!");
+        }
+
+        // Modal Logic
+        window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+    </script>
+</body>
+</html>
